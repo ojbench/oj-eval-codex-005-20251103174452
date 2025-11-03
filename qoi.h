@@ -97,8 +97,8 @@ bool QoiEncode(uint32_t width, uint32_t height, uint8_t channels, uint8_t colors
         if (history[idx][0] == r && history[idx][1] == g && history[idx][2] == b && history[idx][3] == a) {
             // QOI_OP_INDEX
             QoiWriteU8(static_cast<uint8_t>(QOI_OP_INDEX_TAG | idx));
-        } else if (a == pre_a && channels == 3) {
-            // try QOI_OP_LUMA first (tie-breaker different)
+        } else if (a == pre_a) {
+            // prefer LUMA over DIFF when both possible
             int dr = static_cast<int>(r) - static_cast<int>(pre_r);
             int dg = static_cast<int>(g) - static_cast<int>(pre_g);
             int db = static_cast<int>(b) - static_cast<int>(pre_b);
@@ -112,25 +112,17 @@ bool QoiEncode(uint32_t width, uint32_t height, uint8_t channels, uint8_t colors
                 QoiWriteU8(b1);
                 QoiWriteU8(b2);
             } else if (dr >= -2 && dr <= 1 && dg >= -2 && dg <= 1 && db >= -2 && db <= 1) {
-                // QOI_OP_DIFF
                 uint8_t v = static_cast<uint8_t>(QOI_OP_DIFF_TAG |
                     ((dr + 2) << 4) |
                     ((dg + 2) << 2) |
                     ((db + 2) << 0));
                 QoiWriteU8(v);
             } else {
-                // QOI_OP_RGB
                 QoiWriteU8(QOI_OP_RGB_TAG);
                 QoiWriteU8(r);
                 QoiWriteU8(g);
                 QoiWriteU8(b);
             }
-        } else if (a == pre_a && channels == 4) {
-            // For RGBA, avoid DIFF/LUMA; prefer RGB when alpha unchanged
-            QoiWriteU8(QOI_OP_RGB_TAG);
-            QoiWriteU8(r);
-            QoiWriteU8(g);
-            QoiWriteU8(b);
         } else {
             // QOI_OP_RGBA
             QoiWriteU8(QOI_OP_RGBA_TAG);
